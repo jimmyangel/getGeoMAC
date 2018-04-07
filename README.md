@@ -10,8 +10,7 @@ Options:
   -d, --dest [FILE]      Destination directory (Default is rcwildfires-data)
   -h, --help             Display help and usage details
 ```
-
-####Examples:
+#### Examples:
 
 Get current year data for the state of Oregon
 ```
