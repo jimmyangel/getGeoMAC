@@ -1,8 +1,15 @@
 ## getGeoMAC - Get a snapshot of [GeoMAC](https://www.geomac.gov/) data in TopoJSON format
 
+This utility retrieves a collection of fire perimeter files published by GeoMAC in .shp format and converts
+them to TopoJSON. All properties are preserved. The utility collects all perimeters for a every single fire and combines them
+into a single TopoJSON file. The utility also produces a JSON summary file with a list of
+all fires processed.
+
+WARNING: The utility **wipes out** the destination directory!
+
 ```
 Usage:
-  getGeoMAC.js [OPTIONS] [ARGS]
+  node getGeoMAC.js [OPTIONS] [ARGS]
 
 Options:
   -s, --state [STRING]   State (Default is Oregon)
