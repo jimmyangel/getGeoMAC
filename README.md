@@ -16,7 +16,7 @@ Get current year data for the state of Oregon
 ```
 node getGeoMAC.js
 ```
-Get current year data for the state of Californis
+Get current year data for the state of California
 ```
 node getGeoMAC.js -s California
 ```

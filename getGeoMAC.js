@@ -13,6 +13,7 @@ const MAX_PROMISES = 5;
 const HOST = 'https://rmgsc.cr.usgs.gov';
 
 var year;
+var dest;
 
 var options = cli.parse({
     state: ['s', 'State', 'string', 'Oregon'],
@@ -27,17 +28,15 @@ if (options.help) {
 } else {
   let state = options.state ? options.state : 'Oregon';
   year = options.year ? options.year : 'current_year';
-  let dest = options.dest ? options.dest : 'rcwildfires-data';
+  dest = options.dest ? options.dest : 'rcwildfires-data';
   let path = '/outgoing/GeoMAC/' + year + '_fire_data/';
   doGetGeoMACData (path, state);
 }
 
-//doGetGeoMACData (HOST, path, state);
-
 function doGetGeoMACData (path, state) {
-  rimraf.sync('rcwildfires-data');
-  fs.mkdirSync('rcwildfires-data/');
-  fs.mkdirSync('rcwildfires-data/' + year);
+  rimraf.sync(dest);
+  fs.mkdirSync(dest + '/');
+  fs.mkdirSync(dest + '/' + year);
 
   retrieveList(HOST + path + state + '/').then(listData => {
     let $ = cheerio.load(listData);
@@ -130,7 +129,7 @@ function processFireRecords(fireRecords) {
       //delete fireRecords[i].fireLink;
     //}
 
-    fs.writeFile('rcwildfires-data/' + year + 'fireRecords.json', JSON.stringify(fireRecords, null, 2), (error) => {
+    fs.writeFile(dest+ '/' + year + 'fireRecords.json', JSON.stringify(fireRecords, null, 2), (error) => {
       if (error) {
         console.error(error);
         process.exitCode = 1;
@@ -158,7 +157,7 @@ function fireRecordTask (fireRecord) {
         ];
         fireRecord.fireMaxAcres = Number((fireRecord.fireMaxAcres).toFixed(0));
         let wrapFireReports = {type: 'FeatureCollection', features: geoJSONFireReports};
-        fs.writeFile('rcwildfires-data/' + year + '/' + fireRecord.fireFileName + '.json', JSON.stringify(topojson.topology({collection: wrapFireReports})), (error) => {
+        fs.writeFile(dest + '/' + year + '/' + fireRecord.fireFileName + '.json', JSON.stringify(topojson.topology({collection: wrapFireReports})), (error) => {
           if (error) {
             console.error(error);
             reject(error);
