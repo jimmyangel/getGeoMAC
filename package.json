@@ -1,0 +1,18 @@
+{
+  "name": "getGeoMAC",
+  "version": "0.1.0",
+  "description": "",
+  "main": "getGeoMAC.js",
+  "repository": {},
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "cli": "^1.0.1",
+    "geojson-precision": "^0.4.0",
+    "rimraf": "^2.6.2",
+    "shapefile": "^0.6.6",
+    "throttled-promise": "^1.0.1",
+    "topojson-server": "^3.0.0"
+  }
+}
