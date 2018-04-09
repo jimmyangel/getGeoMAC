@@ -1,8 +1,9 @@
 const cli = require('cli');
+const log = require('simple-node-logger').createSimpleLogger();
 const http = require('https');
 const cheerio = require('cheerio');
 const fs = require('fs');
-const rimraf = require('rimraf');
+// const rimraf = require('rimraf');
 const shapefile = require('shapefile');
 const gp = require('geojson-precision');
 const topojson = require('topojson-server');
@@ -12,6 +13,8 @@ const MAX_PROMISES = 5;
 
 const HOST = 'https://rmgsc.cr.usgs.gov';
 
+log.setLevel('warn');
+
 var year;
 var dest;
 
@@ -19,24 +22,26 @@ var options = cli.parse({
     state: ['s', 'State', 'string', 'Oregon'],
     year: ['y', 'Year', 'string', 'current_year'],
     dest: ['d', 'Destination directory', 'file', 'rcwildfires-data'],
+    verbose: ['v', 'Verbose logging', 'boolean', false],
     help: ['h', 'Display help and usage details']
 });
 
 if (options.help) {
-  console.log('getGeoMAC - Get a snapshot of GeoMAC data in TopoJSON format (warning: overwrites destination directory)\n');
+  console.log('getGeoMAC - Get a snapshot of GeoMAC data in TopoJSON format\n');
   cli.getUsage();
 } else {
   let state = options.state ? options.state : 'Oregon';
   year = options.year ? options.year : 'current_year';
   dest = options.dest ? options.dest : 'rcwildfires-data';
   let path = '/outgoing/GeoMAC/' + year + '_fire_data/';
+  if (options.verbose) log.setLevel('info');
   doGetGeoMACData (path, state);
 }
 
 function doGetGeoMACData (path, state) {
-  rimraf.sync(dest);
-  fs.mkdirSync(dest + '/');
-  fs.mkdirSync(dest + '/' + year);
+  //rimraf.sync(dest);
+  try {fs.mkdirSync(dest + '/');} catch(err) {if (err.code !== 'EEXIST') throw(err);}
+  try {fs.mkdirSync(dest + '/' + year);} catch (err) {if (err.code !== 'EEXIST') throw(err);}
 
   retrieveList(HOST + path + state + '/').then(listData => {
     let $ = cheerio.load(listData);
@@ -78,14 +83,14 @@ function doGetGeoMACData (path, state) {
       processFireRecords(values);
     }).catch((err) => {
       if (err.code === 'ENOTFOUND') {
-        console.error(`No ${state} data available for ${year}`);
+        log.warn(`No ${state} data available for ${year}`);
       } else {
-        console.error(err);
+        log.error(err);
         process.exitCode = 1;
       }
     });
   }).catch((err) => {
-    console.error(err);
+    log.error(err);
     process.exitCode = 1;
   });
 }
@@ -120,7 +125,7 @@ function processFireRecords(fireRecords) {
     p.push(dp);
   });
   ThrottledPromise.all(p, 2).then(() => {
-    console.log('I am done done');
+    log.info('Process complete');
     fireRecords = fireRecords.filter(fireRecord => fireRecord.fireMaxAcres > 1000);
 
     // We do not need these anymore
@@ -131,13 +136,13 @@ function processFireRecords(fireRecords) {
 
     fs.writeFile(dest+ '/' + year + 'fireRecords.json', JSON.stringify(fireRecords, null, 2), (error) => {
       if (error) {
-        console.error(error);
+        log.error(error);
         process.exitCode = 1;
         throw(error);
       }
     });
   }).catch(error => {
-    console.log('processFireRecords', error.stack);
+    log.error('processFireRecords', error.stack);
     process.exitCode = 1;
   });
 }
@@ -159,16 +164,16 @@ function fireRecordTask (fireRecord) {
         let wrapFireReports = {type: 'FeatureCollection', features: geoJSONFireReports};
         fs.writeFile(dest + '/' + year + '/' + fireRecord.fireFileName + '.json', JSON.stringify(topojson.topology({collection: wrapFireReports})), (error) => {
           if (error) {
-            console.error(error);
+            log.error(error);
             reject(error);
           }
         });
-        console.log('I am done with', fireRecord.fireFileName);
+        log.info('Completed processing ', fireRecord.fireFileName);
       }
 
       resolve();
     }).catch(error => {
-      console.error('fireRecordTask', error.stack);
+      log.error('fireRecordTask', error.stack);
       reject(error);
     });
   });
@@ -188,7 +193,7 @@ function fireReportTask (fireRecord, fireReport) {
           bbox[2] = Math.max(bbox[2], result.bbox[2]);
           bbox[3] = Math.max(bbox[3], result.bbox[3]);
           fireRecord.bbox = bbox;
-          console.log(fireRecord.bbox);
+          //console.log(fireRecord.bbox);
           if (result.features[0].properties.GISACRES) {
             fireRecord.fireMaxAcres = Math.max(result.features[0].properties.GISACRES, fireRecord.fireMaxAcres);
             fireReport.fireReportAcres = Number(result.features[0].properties.GISACRES).toFixed(0);
@@ -198,10 +203,10 @@ function fireReportTask (fireRecord, fireReport) {
           }
           result.features[0].properties.fireReportDate = fireReport.fireReportDate;
           delete fireReport.fireReportLink; // We are done with this
-          console.log(fireRecord.fireName, result.features[0].properties.fireReportDate, result.features[0].properties.GISACRES);
+          log.info('Processed fire report ', fireRecord.fireName, result.features[0].properties.fireReportDate, result.features[0].properties.GISACRES);
           resolve(gp(result, 5).features[0]);
         }).catch(error => {
-          console.error('fireReportTask', error.stack);
+          log.error('fireReportTask', error.stack);
           reject(error);
         });
       });

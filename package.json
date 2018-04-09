@@ -15,6 +15,7 @@
     "geojson-precision": "^0.4.0",
     "rimraf": "^2.6.2",
     "shapefile": "^0.6.6",
+    "simple-node-logger": "^0.93.37",
     "throttled-promise": "^1.0.1",
     "topojson-server": "^3.0.0"
   }
