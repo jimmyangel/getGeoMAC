@@ -5,8 +5,6 @@ them to TopoJSON. All properties are preserved. The utility collects all individ
 into a single TopoJSON file per fire. The utility also produces a JSON summary file with a list of
 all fires processed.
 
-WARNING: The utility **wipes out** the destination directory!
-
 ```
 Usage:
   node getGeoMAC.js [OPTIONS] [ARGS]
@@ -15,6 +13,7 @@ Options:
   -s, --state [STRING]   State (Default is Oregon)
   -y, --year [STRING]    Year (Default is current_year)
   -d, --dest [FILE]      Destination directory (Default is rcwildfires-data)
+  -v, --verbose BOOLEAN  Verbose logging
   -h, --help             Display help and usage details
 ```
 #### Examples:
