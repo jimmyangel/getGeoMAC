@@ -5,7 +5,7 @@
   "main": "getGeoMAC.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/silverspringiot/getGeoMAC.git"
+    "url": "https://github.com/jimmyangel/getGeoMAC.git"
   },
   "author": "Ricardo Morin",
   "license": "MIT",
