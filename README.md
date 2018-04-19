@@ -3,7 +3,8 @@
 This utility retrieves a collection of fire perimeter files published by GeoMAC in .shp format and converts
 them to TopoJSON. All properties are preserved. The utility collects all individual perimeter files for a every fire and combines them
 into a single TopoJSON file per fire. The utility also produces a JSON summary file with a list of
-all fires processed.
+all fires processed. Percentage of forest land is calculated by intersecting the area of the last perimeter file with
+a GeoJSON shape of the forest land to intersect with (this functionality can be ignored).
 
 ```
 Usage:
