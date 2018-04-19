@@ -43,7 +43,6 @@ if (options.help) {
   if (options.verbose) {log.setLevel('info');}
   if (options.forest !== 'ignore') {
     retrieveDocByUrl(options.forest).then((result) => {
-      console.log('hey', result);
       forestland = turf.flatten(JSON.parse(result));
       forestlandArea = turf.area(forestland);
       doGetGeoMACData (path, state);
