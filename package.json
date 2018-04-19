@@ -1,6 +1,6 @@
 {
   "name": "getGeoMAC",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Get a snapshot of GeoMAC data in TopoJSON format",
   "main": "getGeoMAC.js",
   "repository": {
@@ -10,6 +10,7 @@
   "author": "Ricardo Morin",
   "license": "MIT",
   "dependencies": {
+    "@turf/turf": "^5.1.6",
     "cheerio": "^1.0.0-rc.2",
     "cli": "^1.0.1",
     "geojson-precision": "^0.4.0",

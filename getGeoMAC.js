@@ -1,19 +1,24 @@
+'use strict';
+
 const cli = require('cli');
 const log = require('simple-node-logger').createSimpleLogger();
 const http = require('https');
 const cheerio = require('cheerio');
 const fs = require('fs');
-// const rimraf = require('rimraf');
 const shapefile = require('shapefile');
 const gp = require('geojson-precision');
 const topojson = require('topojson-server');
 const ThrottledPromise = require('throttled-promise');
 const MAX_PROMISES = 5;
-//const YEAR = 2017; // We will make this a parm later
+
+const turf = require('@turf/turf');
 
 const HOST = 'https://rmgsc.cr.usgs.gov';
 
 log.setLevel('warn');
+
+var forestland;
+var forestlandArea;
 
 var year;
 var dest;
@@ -22,6 +27,7 @@ var options = cli.parse({
     state: ['s', 'State', 'string', 'Oregon'],
     year: ['y', 'Year', 'string', 'current_year'],
     dest: ['d', 'Destination directory', 'file', 'rcwildfires-data'],
+    forest: ['f', 'Url of forestland GeoJSON (or \"ignore\")', 'string', 'https://stable-data.oregonhowl.org/oregon/forestland.json'],
     verbose: ['v', 'Verbose logging', 'boolean', false],
     help: ['h', 'Display help and usage details']
 });
@@ -34,40 +40,46 @@ if (options.help) {
   year = options.year ? options.year : 'current_year';
   dest = options.dest ? options.dest : 'rcwildfires-data';
   let path = '/outgoing/GeoMAC/' + year + '_fire_data/';
-  if (options.verbose) log.setLevel('info');
-  doGetGeoMACData (path, state);
+  if (options.verbose) {log.setLevel('info');}
+  if (options.forest !== 'ignore') {
+    retrieveDocByUrl(options.forest).then((result) => {
+      console.log('hey', result);
+      forestland = turf.flatten(JSON.parse(result));
+      forestlandArea = turf.area(forestland);
+      doGetGeoMACData (path, state);
+    }).catch((err) => {
+      log.error('Error reading forestland url: ', err);
+      process.exitCode = 1;
+    });
+  } else {
+    doGetGeoMACData (path, state);
+  }
 }
 
 function doGetGeoMACData (path, state) {
-  //rimraf.sync(dest);
-  try {fs.mkdirSync(dest + '/');} catch(err) {if (err.code !== 'EEXIST') throw(err);}
-  try {fs.mkdirSync(dest + '/' + year);} catch (err) {if (err.code !== 'EEXIST') throw(err);}
+  try {fs.mkdirSync(dest + '/');} catch(err) {if (err.code !== 'EEXIST') {throw(err);}}
+  try {fs.mkdirSync(dest + '/' + year);} catch (err) {if (err.code !== 'EEXIST') {throw(err);}}
 
-  retrieveList(HOST + path + state + '/').then(listData => {
+  retrieveDocByUrl(HOST + path + state + '/').then(listData => {
     let $ = cheerio.load(listData);
     let p = [];
     $('a').each(function () {
       let link = $(this).attr('href');
-      if (link != path) {
+      if (link !== path) {
         let fileName = link.substring(link.indexOf(path) + (path + state).length + 1, link.length - 1);
         let name = fileName.replace(/_/g, ' ');
-        //console.log('+++ Fire:', name, 'Url', HOST + link);
 
         let dp = (function () {
           return new ThrottledPromise((resolve, reject) => {
-            retrieveList(HOST + link).then(listData => {
+            retrieveDocByUrl(HOST + link).then(listData => {
               let $ = cheerio.load(listData);
               let fireRecord = {fireYear: year, fireName: name, fireFileName: fileName, fireLink: link, fireReports: [], fireMaxAcres: 0, bbox: [180, 90, -180, -90], location: [0, 0]};
               $('a').each(function () {
                 let rlink = $(this).attr('href');
-                if ((rlink != path + state) + '/' && (rlink.endsWith('.shp'))) {
+                if ((rlink !== path + state) + '/' && (rlink.endsWith('.shp'))) {
                   let xdate = rlink.substr(link.length + name.length + 4).substr(0, 13);
-                  //console.log(xdate);
-                  //let xdate = rlink.substr(rlink.length - 22).substr(0, 13);
                   let date = new Date(xdate.substr(0, 4) + '-' + xdate.substr(4, 2) + '-' + xdate.substr(6, 2) + 'T' + xdate.substr(9, 2) + ':' + xdate.substr(11, 2));
-                  //console.log(rlink.substr(rlink.length - 22).substr(0, 13), 'xx', date);
                   fireRecord.fireReports.push({fireReportLink: rlink, fireReportDate: date});
-                  //console.log(link);
                 }
               });
               resolve(fireRecord);
@@ -95,7 +107,7 @@ function doGetGeoMACData (path, state) {
   });
 }
 
-function retrieveList(url) {
+function retrieveDocByUrl(url) {
 
   return new Promise((resolve, reject) => {
 
@@ -193,7 +205,6 @@ function fireReportTask (fireRecord, fireReport) {
           bbox[2] = Math.max(bbox[2], result.bbox[2]);
           bbox[3] = Math.max(bbox[3], result.bbox[3]);
           fireRecord.bbox = bbox;
-          //console.log(fireRecord.bbox);
           if (result.features[0].properties.GISACRES) {
             fireRecord.fireMaxAcres = Math.max(result.features[0].properties.GISACRES, fireRecord.fireMaxAcres);
             fireReport.fireReportAcres = Number(result.features[0].properties.GISACRES).toFixed(0);
@@ -203,8 +214,16 @@ function fireReportTask (fireRecord, fireReport) {
           }
           result.features[0].properties.fireReportDate = fireReport.fireReportDate;
           delete fireReport.fireReportLink; // We are done with this
-          log.info('Processed fire report ', fireRecord.fireName, result.features[0].properties.fireReportDate, result.features[0].properties.GISACRES);
-          resolve(gp(result, 5).features[0]);
+          log.info('Processed fire report ', fireRecord.fireName, ' ', result.features[0].properties.fireReportDate, ' ', result.features[0].properties.GISACRES);
+
+          let resultFeature = gp(result, 5).features[0];
+
+          // Compute percent forest for last report and save it on the fireRecord entry
+          if ((forestland) && (fireRecord.fireReports[fireRecord.fireReports.length-1].fireReportDate === fireReport.fireReportDate)) {
+            fireRecord.percentForest = computeForestLandPercent(resultFeature);
+          }
+
+          resolve(resultFeature);
         }).catch(error => {
           log.error('fireReportTask', error.stack);
           reject(error);
@@ -212,4 +231,33 @@ function fireReportTask (fireRecord, fireReport) {
       });
     });
   });
+}
+
+function computeForestLandPercent(shape) {
+
+  let area = turf.area(shape);
+  let iArea = 0;
+
+  if (area > 0) {
+    let fShape = turf.flatten(shape);
+    fShape.features.forEach(function (feature) {
+      if (turf.area(feature)) {
+        forestland.features.forEach(function (forest) {
+          if (turf.area(forest)) {
+            let intersection;
+            // Sometimes shapes are crappy, so ignore those
+            try {
+              intersection = turf.intersect(turf.simplify(feature, {tolerance: 0.0001}), forest);
+            } catch (e) {
+            }
+            if (intersection) {
+                iArea += turf.area(intersection);
+            }
+          }
+        });
+      }
+    });
+    return Math.round(100*(iArea/area));
+  }
+  return 0;
 }

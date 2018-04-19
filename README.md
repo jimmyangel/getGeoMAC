@@ -13,6 +13,7 @@ Options:
   -s, --state [STRING]   State (Default is Oregon)
   -y, --year [STRING]    Year (Default is current_year)
   -d, --dest [FILE]      Destination directory (Default is rcwildfires-data)
+  -f, --forest [STRING]  Url of forestland GeoJSON (or "ignore") (Default is https://stable-data.oregonhowl.org/oregon/forestland.json)
   -v, --verbose BOOLEAN  Verbose logging
   -h, --help             Display help and usage details
 ```
@@ -24,7 +25,11 @@ node getGeoMAC.js
 ```
 Get current year data for the state of California
 ```
-node getGeoMAC.js -s California
+node getGeoMAC.js -s California -f https://example.com/california/forestland.json
+```
+Get current year data for the state of California, ignore forestland
+```
+node getGeoMAC.js -s California -f ignore
 ```
 Get 2017 data for the state of Oregon
 ```
