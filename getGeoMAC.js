@@ -9,6 +9,8 @@ const shapefile = require('shapefile');
 const gp = require('geojson-precision');
 const topojson = require('topojson-server');
 const ThrottledPromise = require('throttled-promise');
+const Cesium = require('cesium');
+
 const MAX_PROMISES = 5;
 
 const turf = require('@turf/turf');
@@ -29,6 +31,7 @@ var options = cli.parse({
     dest: ['d', 'Destination directory', 'file', 'rcwildfires-data'],
     forest: ['f', 'Url of forestland GeoJSON (or \"ignore\")', 'string', 'https://stable-data.oregonhowl.org/oregon/forestland.json'],
     verbose: ['v', 'Verbose logging', 'boolean', false],
+    noelev: ['n', 'Skip elevation data', 'boolean', false],
     help: ['h', 'Display help and usage details']
 });
 
@@ -58,6 +61,8 @@ if (options.help) {
 function doGetGeoMACData (path, state) {
   try {fs.mkdirSync(dest + '/');} catch(err) {if (err.code !== 'EEXIST') {throw(err);}}
   try {fs.mkdirSync(dest + '/' + year);} catch (err) {if (err.code !== 'EEXIST') {throw(err);}}
+
+  log.info('Getting GeoMac data');
 
   retrieveDocByUrl(HOST + path + state + '/').then(listData => {
     let $ = cheerio.load(listData);
@@ -136,21 +141,19 @@ function processFireRecords(fireRecords) {
     p.push(dp);
   });
   ThrottledPromise.all(p, 2).then(() => {
-    log.info('Process complete');
     fireRecords = fireRecords.filter(fireRecord => fireRecord.fireMaxAcres > 1000);
 
-    // We do not need these anymore
-    //for (let i=0; i <fireRecords.length; i++)  {
     fireRecords.forEach((fr, i) => delete fireRecords[i].fireLink);
-      //delete fireRecords[i].fireLink;
-    //}
 
-    fs.writeFile(dest+ '/' + year + 'fireRecords.json', JSON.stringify(fireRecords, null, 2), (error) => {
-      if (error) {
-        log.error(error);
-        process.exitCode = 1;
-        throw(error);
-      }
+    updateElevations(fireRecords, function(fR) { // Get elevations
+      log.info('Process complete');
+      fs.writeFile(dest+ '/' + year + 'fireRecords.json', JSON.stringify(fR), (error) => {
+        if (error) {
+          log.error(error);
+          process.exitCode = 1;
+          throw(error);
+        }
+      });
     });
   }).catch(error => {
     log.error('processFireRecords', error.stack);
@@ -259,4 +262,32 @@ function computeForestLandPercent(shape) {
     return Math.round(100*(iArea/area));
   }
   return 0;
+}
+
+function updateElevations(fireRecords, callback) {
+  if (options.noelev) {
+    log.info('Skipping elevation data');
+    return callback(fireRecords);
+  };
+
+  let pos = [];
+  fireRecords.forEach(function(f) {
+    pos.push(Cesium.Cartographic.fromDegrees(f.location[0], f.location[1]));
+  });
+
+  let tp = Cesium.createWorldTerrain();
+
+  log.info('Getting elevation data');
+
+  tp.readyPromise.then(function() {
+    Cesium.sampleTerrainMostDetailed(tp, pos).then(function(updPos) {
+      updPos.forEach(function(p, i) {
+        fireRecords[i].location.push(Number(p.height.toFixed(2)));
+      });
+      return callback(fireRecords);
+    });
+  }).otherwise(function (err) {
+    log.error('Error getting elevation data ', err);
+    process.exitCode = 1;
+  });
 }
