@@ -62,7 +62,7 @@ function doGetGeoMACData (path, state) {
   try {fs.mkdirSync(dest + '/');} catch(err) {if (err.code !== 'EEXIST') {throw(err);}}
   try {fs.mkdirSync(dest + '/' + year);} catch (err) {if (err.code !== 'EEXIST') {throw(err);}}
 
-  log.info('Getting GeoMac data');
+  log.info('Getting GeoMac data...');
 
   retrieveDocByUrl(HOST + path + state + '/').then(listData => {
     let $ = cheerio.load(listData);
@@ -71,7 +71,7 @@ function doGetGeoMACData (path, state) {
       let link = $(this).attr('href');
       if (link !== path) {
         let fileName = link.substring(link.indexOf(path) + (path + state).length + 1, link.length - 1);
-        let name = fileName.replace(/_/g, ' ');
+        let name = decodeURIComponent(fileName.replace(/_(?!$)/g, ' '));
 
         let dp = (function () {
           return new ThrottledPromise((resolve, reject) => {
@@ -81,7 +81,7 @@ function doGetGeoMACData (path, state) {
               $('a').each(function () {
                 let rlink = $(this).attr('href');
                 if ((rlink !== path + state) + '/' && (rlink.endsWith('.shp'))) {
-                  let xdate = rlink.substr(link.length + name.length + 4).substr(0, 13);
+                  let xdate = rlink.replace(/%20/g, ' ').substr(link.length + fileName.length + 4).substr(0, 13);
                   let date = new Date(xdate.substr(0, 4) + '-' + xdate.substr(4, 2) + '-' + xdate.substr(6, 2) + 'T' + xdate.substr(9, 2) + ':' + xdate.substr(11, 2));
                   fireRecord.fireReports.push({fireReportLink: rlink, fireReportDate: date});
                 }
