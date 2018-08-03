@@ -83,7 +83,9 @@ function doGetGeoMACData (path, state) {
                 if ((rlink !== path + state) + '/' && (rlink.endsWith('.shp'))) {
                   let xdate = rlink.replace(/%20/g, ' ').substr(link.length + fileName.length + 4).substr(0, 13);
                   let date = new Date(xdate.substr(0, 4) + '-' + xdate.substr(4, 2) + '-' + xdate.substr(6, 2) + 'T' + xdate.substr(9, 2) + ':' + xdate.substr(11, 2));
-                  fireRecord.fireReports.push({fireReportLink: rlink, fireReportDate: date});
+                  if (date instanceof Date && isFinite(date)) {
+                    fireRecord.fireReports.push({fireReportLink: rlink, fireReportDate: date});
+                  }
                 }
               });
               resolve(fireRecord);
