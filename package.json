@@ -1,6 +1,6 @@
 {
   "name": "getGeoMAC",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Get a snapshot of GeoMAC data in TopoJSON format",
   "main": "getGeoMAC.js",
   "repository": {
@@ -19,6 +19,6 @@
     "simple-node-logger": "^0.93.37",
     "throttled-promise": "^1.0.1",
     "topojson-server": "^3.0.0",
-    "cesium": "git+https://github.com/jimmyangel/cesium.git#loadWithHttpRequest-build"
+    "cesium": "^1.45.0"
   }
 }
