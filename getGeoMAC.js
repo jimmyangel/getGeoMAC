@@ -10,6 +10,7 @@ const gp = require('geojson-precision');
 const topojson = require('topojson-server');
 const ThrottledPromise = require('throttled-promise');
 const Cesium = require('cesium');
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMzE3NzI4MC1kM2QxLTQ4OGItOTRmMy1jZjNiMzgyZWNjMTEiLCJpZCI6ODMxLCJpYXQiOjE1MjU5Nzg4MDN9.Aw5ul-R15-PWF1eziTS9fOffIMjm02TL0eRtOD59v2s';
 
 const MAX_PROMISES = 5;
 

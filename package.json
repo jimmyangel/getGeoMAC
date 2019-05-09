@@ -19,6 +19,6 @@
     "simple-node-logger": "^0.93.37",
     "throttled-promise": "^1.0.1",
     "topojson-server": "^3.0.0",
-    "cesium": "^1.53.0"
+    "cesium": "1.53.0"
   }
 }
