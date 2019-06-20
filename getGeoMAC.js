@@ -210,6 +210,7 @@ function fireReportTask (fireRecord, fireReport) {
           bbox[2] = Math.max(bbox[2], result.bbox[2]);
           bbox[3] = Math.max(bbox[3], result.bbox[3]);
           fireRecord.bbox = bbox;
+          result.features[0].properties.GISACRES = result.features[0].properties.GISACRES ? result.features[0].properties.GISACRES : result.features[0].properties.gisAcres;
           if (result.features[0].properties.GISACRES) {
             fireRecord.fireMaxAcres = Math.max(result.features[0].properties.GISACRES, fireRecord.fireMaxAcres);
             fireReport.fireReportAcres = Number(result.features[0].properties.GISACRES).toFixed(0);
