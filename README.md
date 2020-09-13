@@ -1,3 +1,11 @@
+# Deprecated: GeoMAC was decomissioned in May 2020
+
+## You can still retrieve data from 2010-2019 using this code
+
+## For current data, take a look at [getNIFC](https://github.com/jimmyangel/getNIFC)
+
+---
+
 ## getGeoMAC - Get a snapshot of [GeoMAC](https://www.geomac.gov/) data in TopoJSON format
 
 This utility retrieves a collection of fire perimeter files published by GeoMAC in .shp format and converts
